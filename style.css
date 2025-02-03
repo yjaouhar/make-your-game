@@ -9,15 +9,28 @@ body {
     font-family: Arial, sans-serif;
 }
 
+.data {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+    width: 470px;
+}
+
+
 h3 {
+    grid-area: 1 / 1 / 2 / 2;
     margin-bottom: 20px;
     font-size: 24px;
 }
 
 #start {
-    padding: 10px 20px;
+    grid-area: 1 / 2 / 2 / 3;
+    width: 100px;
+    height: 42px;
     font-size: 16px;
-    margin-bottom: 20px;
+    margin-top: 15px;
     cursor: pointer;
     background-color: #4CAF50;
     color: white;

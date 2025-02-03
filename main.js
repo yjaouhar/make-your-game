@@ -1,17 +1,20 @@
-
 document.addEventListener("DOMContentLoaded", StartGame)
 
 function StartGame() {
     const w = 10
     const container = document.querySelector(".container")
-
     let grids = Array.from(document.querySelectorAll(".container div"))
     const score_Display = document.getElementById("score")
-
     let startBottone = document.getElementById("start")
     let score = 0
-    let timer
+    let isPlaying = false
+    let lastTime = 0
+    let lastMoveDown = 0
+    const FPS = 60
+    const FRAME_TIME = 1000 / FPS  // ≈ 16.67ms per frame
+    const MOVE_INTERVAL = 1000     // Piece moves down every 1000ms
     const colors = ["orange", "red", "purple", "green", "blue"]
+    // ... [Rest of the constants remain the same]
     const Ltitr = [
         [1, w + 1, w * 2 + 1, 2],
         [w, w + 1, w + 2, w * 2 + 2],
@@ -50,33 +53,60 @@ function StartGame() {
     let current = alltitr[random][currentRotaion]
 
     startBottone.addEventListener("click", () => {
-        if (timer) {
+        if (isPlaying) {
             startBottone.textContent = "▶"
-            clearInterval(timer)
-            timer = null
+            isPlaying = false
         } else {
             startBottone.textContent = "❚❚"
+            isPlaying = true
             draw()
-            timer = setInterval(moveDown, 1000)
-            // nextRandom = Math.floor(Math.random() * alltitr.length)
+            lastTime = performance.now()
+            lastMoveDown = lastTime
+            gameLoop(lastTime)
             displayShape()
         }
     })
+
+    function gameLoop(currentTime) {
+        if (!isPlaying) return
+
+        const deltaTime = currentTime - lastTime
+        const moveDownDelta = currentTime - lastMoveDown
+
+        if (deltaTime >= FRAME_TIME) {
+            // Update game state and redraw at 60 FPS
+            draw()
+            lastTime = currentTime - (deltaTime % FRAME_TIME)
+
+            // Check if it's time to move piece down
+            if (moveDownDelta >= MOVE_INTERVAL) {
+                moveDown()
+                lastMoveDown = currentTime - (moveDownDelta % MOVE_INTERVAL)
+            }
+        }
+
+        requestAnimationFrame(gameLoop)
+    }
+
+    // ... [Rest of the functions remain the same]
     function draw() {
         current.forEach(index => {
             grids[currentPosition + index].classList.add("titre")
             grids[currentPosition + index].style.backgroundColor = colors[random]
         })
     }
+
     function undraw() {
         current.forEach(index => {
             grids[currentPosition + index].classList.remove("titre")
             grids[currentPosition + index].style.backgroundColor = ""
         })
     }
-    document.addEventListener("keyup", control)
-    // timer = setInterval(moveDown, 200)
+
+    document.addEventListener("keydown", control)
+
     function control(event) {
+        if (!isPlaying) return
         if (event.keyCode === 37) {
             moveLeft()
         } else if (event.keyCode === 38) {
@@ -107,7 +137,6 @@ function StartGame() {
             addScor()
             gameOver()
         }
-
     }
 
     function moveLeft() {
@@ -118,6 +147,7 @@ function StartGame() {
         }
         draw()
     }
+
     function moveRight() {
         undraw()
         if (!current.some(index => (currentPosition + index) % w === w - 1)) currentPosition += 1
@@ -129,11 +159,33 @@ function StartGame() {
 
     function rotation() {
         undraw()
+
+        // Save l position l9dima bach nrj3o liha ila kan chi mochkil
+        const oldRotation = currentRotaion
+        const oldPosition = currentPosition
+
+        // Dir rotation
         currentRotaion++
         if (currentRotaion === current.length) {
             currentRotaion = 0
         }
+
+        // Jib position jdida
         current = alltitr[random][currentRotaion]
+
+        // Check wach piece 5arja mn border left/right
+        const isAtRightEdge = current.some(index => (currentPosition + index) % w === w - 1)
+        const isAtLeftEdge = current.some(index => (currentPosition + index) % w === 0)
+        const isOverlapping = current.some(index => grids[currentPosition + index]?.classList.contains("taken"))
+
+        // Ila piece 5arja mn borders wla kayn collision m3a piece 5ra
+        if (isAtRightEdge || isAtLeftEdge || isOverlapping) {
+            // Rj3 l rotation l9dima
+            currentRotaion = oldRotation
+            currentPosition = oldPosition
+            current = alltitr[random][currentRotaion]
+        }
+
         draw()
     }
 
@@ -141,13 +193,12 @@ function StartGame() {
     const displayWidth = 4
     let displayIndex = 0
 
-
     const upNextTetr = [
-        [1, displayWidth + 1, displayWidth * 2 + 1, 2], //Ltetr
-        [0, displayWidth, displayWidth + 1, displayWidth * 2 + 1], //Ztetr
-        [1, displayWidth, displayWidth + 1, displayWidth + 2], //Ttetr
-        [0, 1, displayWidth, displayWidth + 1], //Otetr
-        [1, displayWidth + 1, displayWidth * 2 + 1, displayWidth * 3 + 1] //Itetr
+        [1, displayWidth + 1, displayWidth * 2 + 1, 2],
+        [0, displayWidth, displayWidth + 1, displayWidth * 2 + 1],
+        [1, displayWidth, displayWidth + 1, displayWidth + 2],
+        [0, 1, displayWidth, displayWidth + 1],
+        [1, displayWidth + 1, displayWidth * 2 + 1, displayWidth * 3 + 1]
     ]
 
     function displayShape() {
@@ -160,8 +211,6 @@ function StartGame() {
             displayGrids[displayIndex + index].style.backgroundColor = colors[nextRandom]
         })
     }
-
-
 
     function addScor() {
         for (let i = 0; i < 199; i += w) {
@@ -180,15 +229,16 @@ function StartGame() {
             }
         }
     }
+
     function gameOver() {
         if (current.some(index => grids[currentPosition + index].classList.contains("taken"))) {
             let btn = document.getElementById("btn")
             score_Display.textContent = "End"
-            clearInterval(timer)
+            isPlaying = false
             let div = document.querySelector(".game-over")
             div.style.display = "flex"
             startBottone.style.display = "none"
-            document.removeEventListener("keyup", control)
+            document.removeEventListener("keydown", control)
             btn.addEventListener("click", () => location.reload())
         }
     }
